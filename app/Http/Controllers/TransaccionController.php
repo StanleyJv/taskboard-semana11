@@ -37,4 +37,59 @@ class TransaccionController extends Controller
             ->route('comercios.show', $transaccion->comercio_id)
             ->with('mensaje', 'Transacción registrada con éxito.');
     }
+    public function edit(Transaccion $transaccion)
+{
+    $comercios = Comercio::orderBy('nombre_comercio')->get();
+
+    return view('transacciones.edit',
+        compact('transaccion', 'comercios'));
+}
+public function update(
+    GuardarTransaccionRequest $request,
+    Transaccion $transaccion
+) {
+    $transaccion->update($request->validated());
+
+    return redirect()
+        ->route('comercios.show', $transaccion->comercio_id)
+        ->with('mensaje', 'Transacción actualizada correctamente.');
+}
+public function destroy(Transaccion $transaccion)
+{
+    $comercioId = $transaccion->comercio_id;
+    $cliente = $transaccion->cliente_nombre;
+
+    $transaccion->delete();
+
+    return redirect()
+        ->route('comercios.show', $comercioId)
+        ->with('mensaje', "Transacción de {$cliente} eliminada.");
+}
+public function moverEstado(Transaccion $transaccion, string $estado)
+{
+    $transiciones = [
+        'Iniciada' => ['Completada', 'Fallida'],
+        'Completada' => [],
+        'Fallida' => ['Iniciada'],
+    ];
+
+    if (!in_array($estado, ['Iniciada', 'Completada', 'Fallida'])) {
+        abort(400, 'Estado no válido.');
+    }
+
+    if (!in_array($estado, $transiciones[$transaccion->estado] ?? [])) {
+        abort(
+            400,
+            "No se puede mover de {$transaccion->estado} a {$estado}."
+        );
+    }
+
+    $transaccion->update([
+        'estado' => $estado
+    ]);
+
+    return redirect()
+        ->route('comercios.show', $transaccion->comercio_id)
+        ->with('mensaje', "Transacción movida a {$estado}.");
+}
 }
